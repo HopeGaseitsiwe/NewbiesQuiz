@@ -7,6 +7,90 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
   <link rel="stylesheet" href="css/style.css"/>
+
+  <!-- ══════════════════════════════════════════════════
+       ALL DATA LOGIC INLINED — no external data.js needed
+       This avoids browser caching issues on GitHub Pages
+  ══════════════════════════════════════════════════ -->
+  <script>
+    /* ── Safe storage ── */
+    var DB = {
+      get: function(k) {
+        try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e) { return null; }
+      },
+      set: function(k, v) {
+        try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e) { return false; }
+      },
+      del: function(k) { try { localStorage.removeItem(k); } catch(e) {} }
+    };
+
+    /* ── Password obfuscation (no btoa — it breaks on special chars) ── */
+    function hashPassword(pw) {
+      var key = 'sq_2025_key';
+      var result = '';
+      for (var i = 0; i < pw.length; i++) {
+        result += String.fromCharCode(pw.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      var hex = '';
+      for (var j = 0; j < result.length; j++) {
+        hex += result.charCodeAt(j).toString(16).padStart(2, '0');
+      }
+      return hex;
+    }
+
+    /* ── Users ── */
+    var Users = {
+      getAll: function() { return DB.get('sq_users') || {}; },
+      getUser: function(u) {
+        if (!u) return null;
+        return this.getAll()[u.toLowerCase()] || null;
+      },
+      addUser: function(username, password, displayName) {
+        try {
+          var users = this.getAll();
+          var key = username.toLowerCase().trim();
+          if (users[key]) return { ok: false, msg: 'Username already taken 💔' };
+          users[key] = {
+            username: key,
+            displayName: (displayName || username).trim(),
+            password: hashPassword(password),
+            createdAt: Date.now(),
+            notifications: [],
+            answeredQuiz: false
+          };
+          DB.set('sq_users', users);
+          return { ok: true };
+        } catch(e) {
+          return { ok: false, msg: 'Could not save account: ' + e.message };
+        }
+      },
+      login: function(username, password) {
+        try {
+          var user = this.getUser(username);
+          if (!user) return { ok: false, msg: 'Username not found 🙁' };
+          if (user.password !== hashPassword(password)) return { ok: false, msg: 'Wrong password 🔐' };
+          DB.set('sq_session', user.username);
+          return { ok: true, user: user };
+        } catch(e) {
+          return { ok: false, msg: 'Login error: ' + e.message };
+        }
+      },
+      current: function() {
+        try { var k = DB.get('sq_session'); return k ? this.getUser(k) : null; } catch(e) { return null; }
+      }
+    };
+
+    /* ── Toast ── */
+    function showToast(msg) {
+      try {
+        var t = document.createElement('div');
+        t.className = 'toast-sq';
+        t.innerHTML = msg;
+        document.body.appendChild(t);
+        setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 5000);
+      } catch(e) {}
+    }
+  </script>
 </head>
 <body>
 
@@ -17,7 +101,10 @@
       <i class="bi bi-list fs-4"></i>
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
-      <ul class="navbar-nav ms-auto align-items-md-center gap-md-1" id="main-nav"></ul>
+      <ul class="navbar-nav ms-auto align-items-md-center gap-md-1">
+        <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
+        <li class="nav-item ms-2"><a class="btn-nav-cta btn" href="register.html">Sign Up</a></li>
+      </ul>
     </div>
   </div>
 </nav>
@@ -29,57 +116,49 @@
       <div class="col-md-10 col-lg-7 col-xl-6">
 
         <div class="text-center mb-4 fade-in">
-          <span class="auth-icon">&#128151;</span>
+          <div style="font-size:3rem;margin-bottom:0.5rem;">&#128151;</div>
           <h1 style="font-size:1.8rem;color:var(--sq-dark);">Create Your Account</h1>
-          <p style="color:var(--sq-muted);">Start your compatibility journey today &mdash; it&rsquo;s completely free.</p>
+          <p style="color:var(--sq-muted);">Start your compatibility journey &mdash; it&rsquo;s free.</p>
         </div>
 
         <div class="auth-card fade-in">
 
-          <div id="error-alert" class="alert d-none mb-3" role="alert"
-               style="background:#fff0f3;border:1.5px solid #ffb3c9;color:var(--sq-dark);border-radius:10px;"></div>
+          <!-- Error box -->
+          <div id="error-box" style="display:none;background:#fff0f3;border:1.5px solid #ffb3c9;color:#a8004a;border-radius:10px;padding:0.8rem 1rem;margin-bottom:1.2rem;font-size:0.92rem;"></div>
 
-          <div id="success-alert" class="alert d-none mb-3" role="alert"
-               style="background:#e8f9f0;border:1.5px solid #b3e8cc;color:#1a5c35;border-radius:10px;"></div>
+          <!-- Success box -->
+          <div id="success-box" style="display:none;background:#e8f9f0;border:1.5px solid #b3e8cc;color:#1a7a4a;border-radius:10px;padding:0.8rem 1rem;margin-bottom:1.2rem;font-size:0.92rem;"></div>
 
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Display Name</label>
-              <div class="input-group">
-                <span class="input-group-text"
-                  style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;">
-                  <i class="bi bi-person-heart" style="color:var(--sq-dark);"></i>
-                </span>
-                <input type="text" class="form-control" id="display-name"
-                  placeholder="e.g. Lebo, Sipho, Thandeka"
-                  style="border-left:none;border-radius:0 10px 10px 0;"
-                  autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
-              </div>
-              <div class="form-text" style="color:var(--sq-muted);">Your friendly name shown to others</div>
+              <input type="text" class="form-control" id="display-name"
+                     placeholder="e.g. Lebo, Sipho, Thandeka"
+                     autocomplete="off" autocorrect="off" spellcheck="false"/>
+              <div class="form-text" style="color:var(--sq-muted);">This is the name others will see</div>
             </div>
 
             <div class="col-12">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Username</label>
               <div class="input-group">
-                <span class="input-group-text"
-                  style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;font-weight:700;color:var(--sq-dark);">@</span>
+                <span class="input-group-text" style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;font-weight:700;color:var(--sq-dark);">@</span>
                 <input type="text" class="form-control" id="username"
-                  placeholder="e.g. lebo_sunshine"
-                  style="border-left:none;border-radius:0 10px 10px 0;"
-                  autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
+                       placeholder="e.g. lebo_sunshine (no spaces)"
+                       style="border-left:none;border-radius:0 10px 10px 0;"
+                       autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="none"/>
               </div>
-              <div class="form-text" style="color:var(--sq-muted);">No spaces — use underscores. How others find you.</div>
+              <div class="form-text" style="color:var(--sq-muted);">How others will search for &amp; invite you</div>
             </div>
 
             <div class="col-sm-6">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Password</label>
               <div class="input-group">
                 <input type="password" class="form-control" id="password"
-                  placeholder="At least 6 characters"
-                  style="border-radius:10px 0 0 10px;" autocomplete="new-password"/>
-                <button class="btn" type="button" id="toggle-pw"
-                  style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-left:none;border-radius:0 10px 10px 0;">
-                  <i class="bi bi-eye" id="eye-icon" style="color:var(--sq-dark);"></i>
+                       placeholder="At least 6 characters"
+                       style="border-radius:10px 0 0 10px;" autocomplete="new-password"/>
+                <button type="button" id="toggle-pw"
+                        style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-left:none;border-radius:0 10px 10px 0;padding:0 0.75rem;cursor:pointer;">
+                  <i class="bi bi-eye" style="color:var(--sq-dark);"></i>
                 </button>
               </div>
             </div>
@@ -87,17 +166,17 @@
             <div class="col-sm-6">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Confirm Password</label>
               <input type="password" class="form-control" id="confirm-password"
-                placeholder="Repeat password" autocomplete="new-password"/>
+                     placeholder="Repeat password" autocomplete="new-password"/>
             </div>
           </div>
 
           <div class="d-grid mt-4">
-            <button class="btn btn-primary btn-lg" id="register-btn" type="button">
+            <button type="button" id="register-btn" class="btn btn-primary btn-lg">
               <i class="bi bi-heart-fill me-2"></i>Create Account &amp; Start Quiz
             </button>
           </div>
 
-          <div class="auth-switch">
+          <div class="auth-switch mt-3">
             Already have an account? <a href="login.html">Sign in here</a>
           </div>
         </div>
@@ -110,113 +189,84 @@
 <footer class="site-footer">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div class="footer-brand">&#128151; Quiz</div>
+      <div class="footer-brand">&#128151; NewbiesQuiz</div>
       <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">&copy; 2026 NewbiesQuiz</div>
     </div>
   </div>
 </footer>
 
-<!-- Bootstrap JS first, then data.js, then page script -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/data.js"></script>
 <script>
-(function() {
-  // Run immediately once DOM is ready
-  function init() {
+  // ── Page logic ──────────────────────────────────────────────
+  // (All Users/DB/hashPassword already defined in <head> above)
 
-    // Safety check — if data.js failed to load, show a clear message
-    if (typeof Users === 'undefined' || typeof DB === 'undefined') {
-      document.getElementById('error-alert').innerHTML =
-        'App failed to load. Please hard-refresh the page (Ctrl+Shift+R or Cmd+Shift+R).';
-      document.getElementById('error-alert').classList.remove('d-none');
-      document.getElementById('register-btn').disabled = true;
-      return;
-    }
-
-    // If already logged in, go to dashboard
-    if (Users.current()) {
-      window.location.replace('dashboard.html');
-      return;
-    }
-
-    function showError(msg) {
-      var el = document.getElementById('error-alert');
-      el.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
-      el.classList.remove('d-none');
-      document.getElementById('success-alert').classList.add('d-none');
-    }
-
-    function showSuccess(msg) {
-      var el = document.getElementById('success-alert');
-      el.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>' + msg;
-      el.classList.remove('d-none');
-      document.getElementById('error-alert').classList.add('d-none');
-    }
-
-    // Password visibility toggle
-    document.getElementById('toggle-pw').onclick = function() {
-      var pw = document.getElementById('password');
-      var icon = document.getElementById('eye-icon');
-      if (pw.type === 'password') {
-        pw.type = 'text';
-        icon.className = 'bi bi-eye-slash';
-      } else {
-        pw.type = 'password';
-        icon.className = 'bi bi-eye';
-      }
-    };
-
-    // Register
-    document.getElementById('register-btn').onclick = function() {
-      document.getElementById('error-alert').classList.add('d-none');
-
-      var displayName = document.getElementById('display-name').value.trim();
-      var username    = document.getElementById('username').value.trim();
-      var password    = document.getElementById('password').value;
-      var confirm     = document.getElementById('confirm-password').value;
-
-      if (!displayName)         return showError('Please enter your display name.');
-      if (!username)            return showError('Please choose a username.');
-      if (/\s/.test(username))  return showError('Username cannot contain spaces. Use underscores instead.');
-      if (username.length < 3)  return showError('Username must be at least 3 characters.');
-      if (password.length < 6)  return showError('Password must be at least 6 characters.');
-      if (password !== confirm)  return showError('Passwords do not match.');
-
-      var result = Users.addUser(username, password, displayName);
-      if (!result.ok) return showError(result.msg);
-
-      var loginResult = Users.login(username, password);
-      if (!loginResult.ok) return showError('Account created but could not log in: ' + loginResult.msg);
-
-      showSuccess('Account created! Redirecting you to the quiz...');
-      document.getElementById('register-btn').disabled = true;
-
-      setTimeout(function() {
-        window.location.href = 'quiz.html';
-      }, 1000);
-    };
-
-    // Enter key support
-    var fields = ['display-name', 'username', 'password', 'confirm-password'];
-    for (var i = 0; i < fields.length; i++) {
-      (function(id) {
-        var el = document.getElementById(id);
-        if (el) {
-          el.onkeydown = function(e) {
-            if (e.key === 'Enter') document.getElementById('register-btn').onclick();
-          };
-        }
-      })(fields[i]);
-    }
+  function showErr(msg) {
+    var box = document.getElementById('error-box');
+    box.innerHTML = '&#9888; ' + msg;
+    box.style.display = 'block';
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function showSuccess(msg) {
+    document.getElementById('error-box').style.display = 'none';
+    var box = document.getElementById('success-box');
+    box.innerHTML = msg;
+    box.style.display = 'block';
+  }
+  function clearErr() {
+    document.getElementById('error-box').style.display = 'none';
   }
 
-  // Wait for DOM
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+  // Redirect if already logged in
+  (function() {
+    try { if (Users.current()) window.location.href = 'dashboard.html'; } catch(e) {}
+  })();
+
+  // Password visibility toggle
+  document.getElementById('toggle-pw').addEventListener('click', function() {
+    var pw = document.getElementById('password');
+    var icon = this.querySelector('i');
+    if (pw.type === 'password') {
+      pw.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      pw.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  });
+
+  // Register
+  document.getElementById('register-btn').addEventListener('click', function() {
+    clearErr();
+
+    var displayName = (document.getElementById('display-name').value || '').trim();
+    var username    = (document.getElementById('username').value || '').trim();
+    var password    = document.getElementById('password').value || '';
+    var confirm     = document.getElementById('confirm-password').value || '';
+
+    if (!displayName)         return showErr('Please enter your display name.');
+    if (!username)            return showErr('Please choose a username.');
+    if (/\s/.test(username))  return showErr('Username cannot have spaces — use underscores e.g. lebo_sunshine');
+    if (username.length < 3)  return showErr('Username must be at least 3 characters.');
+    if (password.length < 6)  return showErr('Password must be at least 6 characters.');
+    if (password !== confirm)  return showErr('Passwords do not match.');
+
+    var result = Users.addUser(username, password, displayName);
+    if (!result.ok) return showErr(result.msg);
+
+    var loginResult = Users.login(username, password);
+    if (!loginResult.ok) return showErr('Account saved but auto-login failed. Please go to <a href="login.html">login</a>.');
+
+    showSuccess('&#10003; Account created! Taking you to the quiz…');
+    setTimeout(function() { window.location.href = 'quiz.html'; }, 1000);
+  });
+
+  // Enter key support
+  ['display-name','username','password','confirm-password'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('register-btn').click();
+    });
+  });
 </script>
 </body>
 </html>
