@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Create Account — NewbieQuiz</title>
+  <title>Create Account — NewbiesQuiz</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
   <link rel="stylesheet" href="css/style.css"/>
@@ -34,49 +34,52 @@
           <p style="color:var(--sq-muted);">Start your compatibility journey today &mdash; it&rsquo;s completely free.</p>
         </div>
 
-        <div class="auth-card fade-in" style="animation-delay:0.1s">
+        <div class="auth-card fade-in">
 
           <div id="error-alert" class="alert d-none mb-3" role="alert"
                style="background:#fff0f3;border:1.5px solid #ffb3c9;color:var(--sq-dark);border-radius:10px;"></div>
+
+          <div id="success-alert" class="alert d-none mb-3" role="alert"
+               style="background:#e8f9f0;border:1.5px solid #b3e8cc;color:#1a5c35;border-radius:10px;"></div>
 
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Display Name</label>
               <div class="input-group">
                 <span class="input-group-text"
-                      style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;">
+                  style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;">
                   <i class="bi bi-person-heart" style="color:var(--sq-dark);"></i>
                 </span>
                 <input type="text" class="form-control" id="display-name"
-                       placeholder="e.g. Lebo, Sipho, Thandeka"
-                       style="border-left:none;border-radius:0 10px 10px 0;"
-                       autocomplete="off" autocorrect="off" spellcheck="false"/>
+                  placeholder="e.g. Lebo, Sipho, Thandeka"
+                  style="border-left:none;border-radius:0 10px 10px 0;"
+                  autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
               </div>
-              <div class="form-text" style="color:var(--sq-muted);">Shown to other users</div>
+              <div class="form-text" style="color:var(--sq-muted);">Your friendly name shown to others</div>
             </div>
 
             <div class="col-12">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Username</label>
               <div class="input-group">
                 <span class="input-group-text"
-                      style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;font-weight:700;color:var(--sq-dark);">@</span>
+                  style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;font-weight:700;color:var(--sq-dark);">@</span>
                 <input type="text" class="form-control" id="username"
-                       placeholder="e.g. lebo_sunshine"
-                       style="border-left:none;border-radius:0 10px 10px 0;"
-                       autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="none"/>
+                  placeholder="e.g. lebo_sunshine"
+                  style="border-left:none;border-radius:0 10px 10px 0;"
+                  autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
               </div>
-              <div class="form-text" style="color:var(--sq-muted);">No spaces — use underscores. This is how others find you.</div>
+              <div class="form-text" style="color:var(--sq-muted);">No spaces — use underscores. How others find you.</div>
             </div>
 
             <div class="col-sm-6">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Password</label>
               <div class="input-group">
                 <input type="password" class="form-control" id="password"
-                       placeholder="At least 6 characters"
-                       style="border-radius:10px 0 0 10px;" autocomplete="new-password"/>
+                  placeholder="At least 6 characters"
+                  style="border-radius:10px 0 0 10px;" autocomplete="new-password"/>
                 <button class="btn" type="button" id="toggle-pw"
-                        style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-left:none;border-radius:0 10px 10px 0;">
-                  <i class="bi bi-eye" style="color:var(--sq-dark);"></i>
+                  style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-left:none;border-radius:0 10px 10px 0;">
+                  <i class="bi bi-eye" id="eye-icon" style="color:var(--sq-dark);"></i>
                 </button>
               </div>
             </div>
@@ -84,7 +87,7 @@
             <div class="col-sm-6">
               <label class="form-label fw-semibold" style="color:var(--sq-muted);">Confirm Password</label>
               <input type="password" class="form-control" id="confirm-password"
-                     placeholder="Repeat password" autocomplete="new-password"/>
+                placeholder="Repeat password" autocomplete="new-password"/>
             </div>
           </div>
 
@@ -99,21 +102,6 @@
           </div>
         </div>
 
-        <div class="row g-2 mt-3 text-center fade-in" style="animation-delay:0.2s">
-          <div class="col-4">
-            <div style="font-size:1.4rem;">&#128274;</div>
-            <div style="font-size:0.75rem;color:var(--sq-muted);">Private &amp; secure</div>
-          </div>
-          <div class="col-4">
-            <div style="font-size:1.4rem;">&#9889;</div>
-            <div style="font-size:0.75rem;color:var(--sq-muted);">Takes 5 minutes</div>
-          </div>
-          <div class="col-4">
-            <div style="font-size:1.4rem;">&#128175;</div>
-            <div style="font-size:0.75rem;color:var(--sq-muted);">Completely free</div>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -122,37 +110,53 @@
 <footer class="site-footer">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div class="footer-brand">&#128151; NewbiesQuiz</div>
-      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">&copy; 2026 NewbiesQuiz &middot; Made with &#128149;</div>
+      <div class="footer-brand">&#128151; Quiz</div>
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">&copy; 2026 NewbiesQuiz</div>
     </div>
   </div>
 </footer>
 
+<!-- Bootstrap JS first, then data.js, then page script -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/data.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+(function() {
+  // Run immediately once DOM is ready
+  function init() {
 
-    // Redirect if already logged in
-    try {
-      if (Users.current()) { window.location.href = 'dashboard.html'; return; }
-    } catch(e) {}
+    // Safety check — if data.js failed to load, show a clear message
+    if (typeof Users === 'undefined' || typeof DB === 'undefined') {
+      document.getElementById('error-alert').innerHTML =
+        'App failed to load. Please hard-refresh the page (Ctrl+Shift+R or Cmd+Shift+R).';
+      document.getElementById('error-alert').classList.remove('d-none');
+      document.getElementById('register-btn').disabled = true;
+      return;
+    }
 
-    // Helper: show error
+    // If already logged in, go to dashboard
+    if (Users.current()) {
+      window.location.replace('dashboard.html');
+      return;
+    }
+
     function showError(msg) {
       var el = document.getElementById('error-alert');
       el.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
       el.classList.remove('d-none');
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.getElementById('success-alert').classList.add('d-none');
     }
-    function hideError() {
+
+    function showSuccess(msg) {
+      var el = document.getElementById('success-alert');
+      el.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>' + msg;
+      el.classList.remove('d-none');
       document.getElementById('error-alert').classList.add('d-none');
     }
 
-    // Password toggle
-    document.getElementById('toggle-pw').addEventListener('click', function() {
+    // Password visibility toggle
+    document.getElementById('toggle-pw').onclick = function() {
       var pw = document.getElementById('password');
-      var icon = document.querySelector('#toggle-pw i');
+      var icon = document.getElementById('eye-icon');
       if (pw.type === 'password') {
         pw.type = 'text';
         icon.className = 'bi bi-eye-slash';
@@ -160,50 +164,59 @@
         pw.type = 'password';
         icon.className = 'bi bi-eye';
       }
-    });
+    };
 
-    // Register button
-    document.getElementById('register-btn').addEventListener('click', function() {
-      hideError();
-      try {
-        var displayName = document.getElementById('display-name').value.trim();
-        var username    = document.getElementById('username').value.trim();
-        var password    = document.getElementById('password').value;
-        var confirm     = document.getElementById('confirm-password').value;
+    // Register
+    document.getElementById('register-btn').onclick = function() {
+      document.getElementById('error-alert').classList.add('d-none');
 
-        if (!displayName)           return showError('Please enter your display name.');
-        if (!username)              return showError('Please choose a username.');
-        if (/\s/.test(username))    return showError('Username cannot contain spaces. Use underscores instead.');
-        if (username.length < 3)    return showError('Username must be at least 3 characters long.');
-        if (password.length < 6)    return showError('Password must be at least 6 characters long.');
-        if (password !== confirm)   return showError('Passwords do not match. Please check and try again.');
+      var displayName = document.getElementById('display-name').value.trim();
+      var username    = document.getElementById('username').value.trim();
+      var password    = document.getElementById('password').value;
+      var confirm     = document.getElementById('confirm-password').value;
 
-        var result = Users.addUser(username, password, displayName);
-        if (!result.ok) return showError(result.msg);
+      if (!displayName)         return showError('Please enter your display name.');
+      if (!username)            return showError('Please choose a username.');
+      if (/\s/.test(username))  return showError('Username cannot contain spaces. Use underscores instead.');
+      if (username.length < 3)  return showError('Username must be at least 3 characters.');
+      if (password.length < 6)  return showError('Password must be at least 6 characters.');
+      if (password !== confirm)  return showError('Passwords do not match.');
 
-        var loginResult = Users.login(username, password);
-        if (!loginResult.ok) return showError('Account created but login failed. Please go to the login page.');
+      var result = Users.addUser(username, password, displayName);
+      if (!result.ok) return showError(result.msg);
 
-        showToast('Account created! Welcome, ' + displayName + ' &#128151;');
-        setTimeout(function() { window.location.href = 'quiz.html'; }, 800);
+      var loginResult = Users.login(username, password);
+      if (!loginResult.ok) return showError('Account created but could not log in: ' + loginResult.msg);
 
-      } catch(e) {
-        showError('An unexpected error occurred: ' + e.message + '. Please refresh and try again.');
-        console.error('Register error:', e);
-      }
-    });
+      showSuccess('Account created! Redirecting you to the quiz...');
+      document.getElementById('register-btn').disabled = true;
 
-    // Allow Enter key on all fields
-    ['display-name', 'username', 'password', 'confirm-password'].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') document.getElementById('register-btn').click();
-        });
-      }
-    });
+      setTimeout(function() {
+        window.location.href = 'quiz.html';
+      }, 1000);
+    };
 
-  });
+    // Enter key support
+    var fields = ['display-name', 'username', 'password', 'confirm-password'];
+    for (var i = 0; i < fields.length; i++) {
+      (function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.onkeydown = function(e) {
+            if (e.key === 'Enter') document.getElementById('register-btn').onclick();
+          };
+        }
+      })(fields[i]);
+    }
+  }
+
+  // Wait for DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 </body>
 </html>
