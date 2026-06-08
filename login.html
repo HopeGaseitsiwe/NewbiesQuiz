@@ -12,7 +12,7 @@
 
 <nav class="navbar navbar-sq navbar-expand-md sticky-top">
   <div class="container">
-    <a class="navbar-brand" href="index.html">💗 <span>Quiz</span></a>
+    <a class="navbar-brand" href="index.html">&#128151; <span>Quiz</span></a>
     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" style="color:#fff;">
       <i class="bi bi-list fs-4"></i>
     </button>
@@ -29,36 +29,38 @@
       <div class="col-md-10 col-lg-7 col-xl-5">
 
         <div class="text-center mb-4 fade-in">
-          <span class="auth-icon">🔐</span>
+          <span class="auth-icon">&#128274;</span>
           <h1 style="font-size:1.8rem;color:var(--sq-dark);">Welcome Back</h1>
           <p style="color:var(--sq-muted);">Sign in to continue your journey</p>
         </div>
 
-        <!-- Invite banner (shown if ?invited_by= param exists) -->
+        <!-- Invite banner — shown when ?invited_by= param is in URL -->
         <div id="invite-banner" class="d-none mb-3 p-3 rounded-3 fade-in"
              style="background:var(--sq-baby);border:1.5px solid var(--sq-baby2);color:var(--sq-dark);">
         </div>
 
         <div class="auth-card fade-in" style="animation-delay:0.1s">
-          <div id="error-alert" class="alert d-none mb-3"
-               style="background:#fff0f3;border:1.5px solid #ffb3c9;color:var(--sq-dark);border-radius:10px;">
-          </div>
+
+          <div id="error-alert" class="alert d-none mb-3" role="alert"
+               style="background:#fff0f3;border:1.5px solid #ffb3c9;color:var(--sq-dark);border-radius:10px;"></div>
 
           <div class="mb-3">
             <label class="form-label fw-semibold" style="color:var(--sq-muted);">Username</label>
             <div class="input-group">
-              <span class="input-group-text" style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;">
-                <span style="color:var(--sq-dark);font-weight:700;">@</span>
-              </span>
-              <input type="text" class="form-control" id="username" placeholder="Your username"
-                     style="border-left:none;border-radius:0 10px 10px 0;" autocomplete="username"/>
+              <span class="input-group-text"
+                    style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-right:none;border-radius:10px 0 0 10px;font-weight:700;color:var(--sq-dark);">@</span>
+              <input type="text" class="form-control" id="username"
+                     placeholder="Your username"
+                     style="border-left:none;border-radius:0 10px 10px 0;"
+                     autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"/>
             </div>
           </div>
 
           <div class="mb-4">
             <label class="form-label fw-semibold" style="color:var(--sq-muted);">Password</label>
             <div class="input-group">
-              <input type="password" class="form-control" id="password" placeholder="Your password"
+              <input type="password" class="form-control" id="password"
+                     placeholder="Your password"
                      style="border-radius:10px 0 0 10px;" autocomplete="current-password"/>
               <button class="btn" type="button" id="toggle-pw"
                       style="background:var(--sq-baby);border:2px solid var(--sq-baby2);border-left:none;border-radius:0 10px 10px 0;">
@@ -68,7 +70,7 @@
           </div>
 
           <div class="d-grid">
-            <button class="btn btn-primary btn-lg" id="login-btn">
+            <button class="btn btn-primary btn-lg" id="login-btn" type="button">
               <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
             </button>
           </div>
@@ -86,8 +88,8 @@
 <footer class="site-footer">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div class="footer-brand">💗 Quiz</div>
-      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">© 2026 Quiz · Made with 💕</div>
+      <div class="footer-brand">&#128151; NewbiesQuiz</div>
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">&copy; 2026 NewbiesQuiz &middot; Made with &#128149;</div>
     </div>
   </div>
 </footer>
@@ -95,57 +97,93 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/data.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (Users.current()) { window.location.href = 'dashboard.html'; return; }
+  document.addEventListener('DOMContentLoaded', function() {
 
-    // Invite banner
-    const params = new URLSearchParams(window.location.search);
-    const invitedBy = params.get('invited_by');
-    if (invitedBy) {
-      const banner = document.getElementById('invite-banner');
-      banner.innerHTML = `💌 <strong>${decodeURIComponent(invitedBy)}</strong> has invited you to take NewbiesQuiz! Sign in or create an account to accept.`;
-      banner.classList.remove('d-none');
+    // Redirect if already logged in
+    try {
+      if (Users.current()) { window.location.href = 'dashboard.html'; return; }
+    } catch(e) {}
+
+    // Show invite banner if URL has ?invited_by=
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var invitedBy = params.get('invited_by');
+      if (invitedBy) {
+        var banner = document.getElementById('invite-banner');
+        banner.innerHTML = '&#128140; <strong>' + decodeURIComponent(invitedBy) + '</strong> has invited you to take NewbiesQuiz! Sign in to accept.';
+        banner.classList.remove('d-none');
+      }
+    } catch(e) {}
+
+    // Helper: show / hide error
+    function showError(msg) {
+      var el = document.getElementById('error-alert');
+      el.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
+      el.classList.remove('d-none');
+    }
+    function hideError() {
+      document.getElementById('error-alert').classList.add('d-none');
     }
 
-    document.getElementById('toggle-pw').addEventListener('click', () => {
-      const pw = document.getElementById('password');
-      const icon = document.querySelector('#toggle-pw i');
-      pw.type = pw.type === 'password' ? 'text' : 'password';
-      icon.className = pw.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
-    });
-
-    const showError = (msg) => {
-      const el = document.getElementById('error-alert');
-      el.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${msg}`;
-      el.classList.remove('d-none');
-    };
-
-    document.getElementById('login-btn').addEventListener('click', () => {
-      document.getElementById('error-alert').classList.add('d-none');
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      if (!username || !password) return showError('Please fill in all fields.');
-
-      const result = Users.login(username, password);
-      if (!result.ok) return showError(result.msg);
-
-      const user = Users.current();
-      if (invitedBy) {
-        const inviterKey = decodeURIComponent(invitedBy).toLowerCase();
-        Pairs.add(inviterKey, user.username);
-        Users.update(user.username, { invitedBy: inviterKey });
+    // Password toggle
+    document.getElementById('toggle-pw').addEventListener('click', function() {
+      var pw = document.getElementById('password');
+      var icon = document.querySelector('#toggle-pw i');
+      if (pw.type === 'password') {
+        pw.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+      } else {
+        pw.type = 'password';
+        icon.className = 'bi bi-eye';
       }
-
-      showToast('Welcome back, ' + result.user.displayName + '! 💗');
-      const fresh = Users.getUser(user.username);
-      setTimeout(() => window.location.href = fresh.answeredQuiz ? 'dashboard.html' : 'quiz.html', 700);
     });
 
-    ['username','password'].forEach(id => {
-      document.getElementById(id).addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.getElementById('login-btn').click();
-      });
+    // Login button
+    document.getElementById('login-btn').addEventListener('click', function() {
+      hideError();
+      try {
+        var username = document.getElementById('username').value.trim();
+        var password = document.getElementById('password').value;
+
+        if (!username) return showError('Please enter your username.');
+        if (!password) return showError('Please enter your password.');
+
+        var result = Users.login(username, password);
+        if (!result.ok) return showError(result.msg);
+
+        // Handle invite linking
+        try {
+          var params2 = new URLSearchParams(window.location.search);
+          var invitedBy2 = params2.get('invited_by');
+          if (invitedBy2) {
+            var inviterKey = decodeURIComponent(invitedBy2).toLowerCase();
+            Pairs.add(inviterKey, result.user.username);
+            Users.update(result.user.username, { invitedBy: inviterKey });
+          }
+        } catch(e) {}
+
+        showToast('Welcome back, ' + result.user.displayName + '! &#128151;');
+
+        var fresh = Users.getUser(result.user.username);
+        var destination = (fresh && fresh.answeredQuiz) ? 'dashboard.html' : 'quiz.html';
+        setTimeout(function() { window.location.href = destination; }, 700);
+
+      } catch(e) {
+        showError('An unexpected error occurred: ' + e.message + '. Please refresh and try again.');
+        console.error('Login error:', e);
+      }
     });
+
+    // Allow Enter key
+    ['username', 'password'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') document.getElementById('login-btn').click();
+        });
+      }
+    });
+
   });
 </script>
 </body>
