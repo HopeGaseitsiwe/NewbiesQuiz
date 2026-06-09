@@ -6,13 +6,42 @@
   <title>The Quiz — NewbiesQuiz</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="./style.css"/>
+  <script>
+/* ── All shared logic inlined ── */
+var DB={get:function(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del:function(k){try{localStorage.removeItem(k);}catch(e){}}};
+function hashPw(pw){var key='sq_key_2025',out='';for(var i=0;i<pw.length;i++){out+=('0'+(pw.charCodeAt(i)^key.charCodeAt(i%key.length)).toString(16)).slice(-2);}return out;}
+var Users={all:function(){return DB.get('sq_users')||{};},get:function(u){if(!u)return null;return this.all()[String(u).toLowerCase()]||null;},current:function(){try{var k=DB.get('sq_session');return k?this.get(k):null;}catch(e){return null;}},update:function(username,data){try{var us=this.all(),k=String(username).toLowerCase();if(!us[k])return;Object.keys(data).forEach(function(p){us[k][p]=data[p];});DB.set('sq_users',us);}catch(e){}},notify:function(to,notif){try{var us=this.all(),k=String(to).toLowerCase();if(!us[k])return;if(!us[k].notifications)us[k].notifications=[];us[k].notifications.push(Object.assign({},notif,{id:Date.now(),read:false}));DB.set('sq_users',us);}catch(e){}}};
+var Pairs={all:function(){return DB.get('sq_pairs')||[];},add:function(a,b){try{var pairs=this.all(),a2=String(a).toLowerCase(),b2=String(b).toLowerCase();if(!pairs.some(function(p){return(p.a===a2&&p.b===b2)||(p.a===b2&&p.b===a2);})){pairs.push({a:a2,b:b2,at:Date.now()});DB.set('sq_pairs',pairs);}}catch(e){}},partner:function(u){try{var k=String(u).toLowerCase(),pair=this.all().find(function(p){return p.a===k||p.b===k;});return pair?(pair.a===k?pair.b:pair.a):null;}catch(e){return null;}}};
+var Answers={save:function(u,d){DB.set('sq_ans_'+u,d);},get:function(u){return DB.get('sq_ans_'+u)||{};}};
+function showToast(msg){try{var t=document.createElement('div');t.className='toast-sq';t.innerHTML=msg;document.body.appendChild(t);setTimeout(function(){try{document.body.removeChild(t);}catch(e){}},5000);}catch(e){}}
+
+var QUESTIONS=[
+  {id:1,topic:'personality',icon:'✨',text:'Which vibe describes you best on a regular day?',type:'options',options:['Bubbly and talkative — I bring the energy','Chill and observant — quiet but full of opinions','Driven and focused — always got something on my mind','Spontaneous and unpredictable — I keep people guessing']},
+  {id:2,topic:'personality',icon:'✨',text:'What drains you the most after a long day?',type:'options',options:['Being around too many people','Having nothing to do — boredom is my enemy','Drama and conflict, even when it is not mine','Not being heard or understood']},
+  {id:3,topic:'personality',icon:'✨',text:'How would you describe your love language in one sentence?',type:'open'},
+  {id:4,topic:'personality',icon:'✨',text:'When things go wrong, you are more likely to…',type:'options',options:['Talk it out immediately with someone I trust','Go quiet and process alone first','Distract myself until I am ready to face it','Jump straight into fixing the problem']},
+  {id:5,topic:'personality',icon:'✨',text:'How would your closest friend describe you in three words?',type:'open'},
+  {id:6,topic:'interests',icon:'🎯',text:'Your perfect Saturday has zero obligations. What does it look like?',type:'options',options:['Outdoors — hiking, braai, beach or something active','Indoors — series, snacks and zero social interaction','Exploring — new restaurant, market, city or event','Creative — music, art, cooking or building something']},
+  {id:7,topic:'interests',icon:'🎯',text:'What kind of music do you actually listen to on repeat?',type:'options',options:['Amapiano and Afrobeats — it hits different','R&B and Soul — I am a whole vibe','Hip-hop and Rap — lyrics matter to me','Pop, Indie or Alternative — no judgment please']},
+  {id:8,topic:'interests',icon:'🎯',text:'What is one hobby or interest you wish more people knew about you?',type:'open'},
+  {id:9,topic:'interests',icon:'🎯',text:'Pick your ideal date from scratch:',type:'options',options:['Fancy dinner with great conversation','Chilling at home and cooking together','Adventure date — go-karting, escape room or hiking','Cultural or creative — gallery, live music or a market']},
+  {id:10,topic:'interests',icon:'🎯',text:'Which topic could you talk about for hours without getting bored?',type:'options',options:['Football, sport or fitness','Food, travel and new experiences','People, relationships and human behaviour','Tech, business, money or future ideas']},
+  {id:11,topic:'relationship',icon:'💞',text:'What does your ideal relationship dynamic look like? Be honest.',type:'open'},
+  {id:12,topic:'relationship',icon:'💞',text:'When you have a problem with someone you like, you tend to…',type:'options',options:['Address it straight away, even if uncomfortable','Wait until I have cooled down — I need time first','Drop hints and hope they pick up on it','Write it down or text rather than say it out loud']},
+  {id:13,topic:'relationship',icon:'💞',text:'What is one thing someone could do to make you feel truly seen and appreciated?',type:'open'},
+  {id:14,topic:'trust',icon:'🔒',text:'What does loyalty in a relationship mean to you?',type:'options',options:['Being completely open — no secrets, no hidden conversations','Showing up consistently, even when it is inconvenient','Choosing each other even when other options exist','All of the above — loyalty is the full package']},
+  {id:15,topic:'life',icon:'🌱',text:'What is one value or belief you will never compromise on, no matter who asks?',type:'open'}
+];
+
+var TOPIC_META={personality:{label:'Personality',icon:'✨'},interests:{label:'Interests',icon:'🎯'},relationship:{label:'Relationship',icon:'💞'},trust:{label:'Trust',icon:'🔒'},life:{label:'Life Values',icon:'🌱'}};
+  </script>
 </head>
 <body>
 
 <nav class="navbar navbar-sq navbar-expand-md sticky-top">
   <div class="container">
-    <a class="navbar-brand" href="index.html">💗 <span>Quiz</span></a>
+    <a class="navbar-brand" href="./index.html">&#128151; <span>Quiz</span></a>
     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" style="color:#fff;">
       <i class="bi bi-list fs-4"></i>
     </button>
@@ -27,48 +56,35 @@
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8 col-xl-7">
-
-        <!-- Topic progress chips -->
         <div class="d-flex flex-wrap gap-2 mb-3" id="topic-chips"></div>
-
-        <!-- Progress bar -->
         <div class="d-flex align-items-center gap-3 mb-3">
           <div class="progress flex-grow-1">
-            <div class="progress-bar" id="progress-fill" style="width:0%" role="progressbar"></div>
+            <div class="progress-bar" id="prog-bar" style="width:0%" role="progressbar"></div>
           </div>
-          <span id="progress-label" style="font-size:0.82rem;color:var(--sq-muted);white-space:nowrap;font-weight:600;">
-            1 / 15
-          </span>
+          <span id="prog-label" style="font-size:0.82rem;color:var(--sq-muted);white-space:nowrap;font-weight:600;">1 / 15</span>
         </div>
-
-        <!-- Quiz card -->
         <div id="quiz-area"></div>
-
       </div>
     </div>
   </div>
 </main>
 
 <!-- Invite Modal -->
-<div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalLabel" aria-hidden="true">
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header" style="border-bottom:1px solid var(--sq-baby2);">
+    <div class="modal-content" style="border-radius:20px;border:none;box-shadow:0 20px 60px rgba(168,0,74,0.25);">
+      <div class="modal-header" style="border-bottom:1px solid var(--sq-baby2);padding:1.5rem;">
         <div>
-          <div style="font-size:1.8rem;line-height:1;">💌</div>
-          <h5 class="modal-title mt-1" id="inviteModalLabel" style="font-family:'Playfair Display',serif;color:var(--sq-dark);">Invite Your Person</h5>
-          <p class="text-muted mb-0" style="font-size:0.85rem;">Select someone — they'll get notified when they log in.</p>
+          <div style="font-size:1.8rem;line-height:1;">&#128140;</div>
+          <h5 class="modal-title mt-1" style="font-family:'Playfair Display',serif;color:var(--sq-dark);">Invite Your Person</h5>
+          <p class="mb-0" style="font-size:0.85rem;color:var(--sq-muted);">Select someone — they'll get notified when they log in.</p>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <div class="input-group mb-3">
-          <span class="input-group-text" style="background:var(--sq-baby);border:2px solid var(--sq-baby2);">
-            <i class="bi bi-search" style="color:var(--sq-dark);"></i>
-          </span>
-          <input type="text" class="form-control" id="user-search" placeholder="Search by username or name…"
-                 style="border-left:none;"/>
-        </div>
+      <div class="modal-body" style="padding:1.5rem;">
+        <input type="text" id="user-search" class="form-control mb-3"
+               placeholder="Search by username or name…"
+               autocomplete="off" autocapitalize="none"/>
         <div id="user-list" style="max-height:280px;overflow-y:auto;"></div>
       </div>
       <div class="modal-footer" style="border-top:1px solid var(--sq-baby2);">
@@ -84,258 +100,276 @@
 <footer class="site-footer">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div class="footer-brand">💗 NewbiesQuiz</div>
-      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">© 2026 Quiz · Made with 💕</div>
+      <div class="footer-brand">&#128151; NewbiesQuiz</div>
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">&copy; 2026 NewbiesQuiz</div>
     </div>
   </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/data.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const session = Users.current();
-    if (!session) { window.location.href = 'login.html'; return; }
+// ── Auth guard ──
+var currentUser = Users.current();
+if (!currentUser) { window.location.href = './login.html'; }
+currentUser = Users.get(currentUser.username); // fresh copy
 
-    const user = Users.getUser(session.username);
-    if (user.answeredQuiz) { renderComplete(true); return; }
+// ── Render nav ──
+(function(){
+  try {
+    var navEl = document.getElementById('main-nav');
+    var u = Users.get(currentUser.username);
+    var nc = (u && u.notifications) ? u.notifications.filter(function(n){return !n.read;}).length : 0;
+    var init = u.displayName.charAt(0).toUpperCase();
+    navEl.innerHTML =
+      '<li class="nav-item"><a class="nav-link" href="./quiz.html">Quiz</a></li>'+
+      '<li class="nav-item"><a class="nav-link" href="./results.html">Results</a></li>'+
+      '<li class="nav-item"><a class="nav-link position-relative" href="./dashboard.html">&#128276;'+(nc>0?'<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.62rem;">'+nc+'</span>':'')+'</a></li>'+
+      '<li class="nav-item"><a class="btn-nav-cta btn ms-2" href="./dashboard.html"><span style="background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:0.75rem;margin-right:6px;">'+init+'</span>'+u.displayName+'</a></li>';
+  } catch(e) {}
+})();
 
-    let currentIdx = 0;
-    let answers = Answers.get(user.username) || {};
-    const TOTAL = QUESTIONS.length; // 15
-    const TOPICS_ORDER = [...new Set(QUESTIONS.map(q => q.topic))];
+// ── Quiz state ──
+var idx = 0;
+var answers = Answers.get(currentUser.username);
+var TOTAL = QUESTIONS.length;
 
-    /* ── Topic chips ── */
-    function renderChips() {
-      document.getElementById('topic-chips').innerHTML = TOPICS_ORDER.map(t => {
-        const qs = QUESTIONS.filter(q => q.topic === t);
-        const done = qs.every(q => answers[q.id]);
-        return `<span class="topic-chip ${done ? 'done' : ''}">
-          ${TOPIC_META[t].icon} ${TOPIC_META[t].label}
-          ${done ? '<i class="bi bi-check-circle-fill ms-1" style="font-size:0.7rem;"></i>' : ''}
-        </span>`;
-      }).join('');
-    }
+// If already done, skip straight to complete screen
+if (currentUser.answeredQuiz) {
+  renderComplete(true);
+} else {
+  renderQ(idx);
+  updateProgress();
+  renderChips();
+}
 
-    /* ── Progress ── */
-    function updateProgress() {
-      const answered = Object.keys(answers).length;
-      const pct = Math.round((answered / TOTAL) * 100);
-      document.getElementById('progress-fill').style.width = pct + '%';
-      document.getElementById('progress-label').textContent = `${currentIdx + 1} / ${TOTAL}`;
-    }
-
-    /* ── Render question ── */
-    function renderQuestion(idx) {
-      const q = QUESTIONS[idx];
-      const saved = answers[q.id] || null;
-      const area = document.getElementById('quiz-area');
-
-      let answerHTML = '';
-      if (q.type === 'options') {
-        const letters = ['A','B','C','D','E'];
-        answerHTML = q.options.map((opt, i) => `
-          <button class="option-btn ${saved === opt ? 'selected' : ''}" data-opt="${opt}">
-            <span class="option-letter">${letters[i]}</span>
-            <span>${opt}</span>
-          </button>`).join('');
-      } else {
-        answerHTML = `
-          <textarea class="form-control open-textarea" id="open-ans" rows="4"
-            placeholder="Be honest — there are no wrong answers here 💕"
-            style="min-height:120px;resize:vertical;">${saved || ''}</textarea>`;
-      }
-
-      area.innerHTML = `
-        <div class="flash-card fade-in">
-          <div class="d-flex align-items-start justify-content-between mb-2 flex-wrap gap-2">
-            <span class="topic-badge">${q.icon} ${TOPIC_META[q.topic].label}</span>
-            <span style="font-size:0.8rem;color:var(--sq-muted);font-weight:600;">Question ${idx+1} of ${TOTAL}</span>
-          </div>
-
-          <p class="q-text">${q.text}</p>
-
-          <div id="answer-area">${answerHTML}</div>
-
-          <div class="d-flex align-items-center justify-content-between mt-4 gap-2 flex-wrap">
-            <button class="btn btn-soft" id="prev-btn" ${idx === 0 ? 'disabled' : ''}>
-              <i class="bi bi-arrow-left me-1"></i> Previous
-            </button>
-            <div class="d-flex gap-1">
-              ${QUESTIONS.map((_,i) => `
-                <span style="width:8px;height:8px;border-radius:50%;background:${answers[QUESTIONS[i].id]?'var(--sq-dark)':'var(--sq-baby2)'};display:inline-block;transition:background 0.3s;"></span>
-              `).join('')}
-            </div>
-            <button class="btn btn-primary" id="next-btn">
-              ${idx === TOTAL - 1 ? '<i class="bi bi-check-circle me-1"></i>Finish Quiz' : 'Next <i class="bi bi-arrow-right ms-1"></i>'}
-            </button>
-          </div>
-        </div>
-      `;
-
-      // Option click handlers
-      area.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          area.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          answers[q.id] = btn.dataset.opt;
-          Answers.save(user.username, answers);
-          renderChips();
-          updateProgress();
-        });
-      });
-
-      // Open text auto-save
-      const ta = area.querySelector('#open-ans');
-      if (ta) {
-        ta.addEventListener('input', () => {
-          answers[q.id] = ta.value.trim();
-          Answers.save(user.username, answers);
-          renderChips();
-          updateProgress();
-        });
-      }
-
-      // Navigation
-      document.getElementById('prev-btn').addEventListener('click', () => {
-        if (currentIdx > 0) { currentIdx--; renderQuestion(currentIdx); updateProgress(); }
-      });
-      document.getElementById('next-btn').addEventListener('click', () => {
-        if (q.type === 'open' && ta) { answers[q.id] = ta.value.trim(); Answers.save(user.username, answers); }
-        if (!answers[q.id]) {
-          showToast('⚠️ Please answer this question before moving on!', 2500);
-          return;
-        }
-        if (currentIdx < TOTAL - 1) { currentIdx++; renderQuestion(currentIdx); updateProgress(); }
-        else finishQuiz();
-      });
-    }
-
-    function finishQuiz() {
-      Users.update(user.username, { answeredQuiz: true });
-      renderComplete(false);
-    }
-
-    /* ── Complete screen ── */
-    function renderComplete(alreadyDone) {
-      document.getElementById('topic-chips').innerHTML = '';
-      document.getElementById('progress-fill').style.width = '100%';
-      document.getElementById('progress-label').textContent = '✅ Done!';
-
-      const partner = Pairs.getPartner(user.username);
-      const partnerUser = partner ? Users.getUser(partner) : null;
-      const partnerDone = partnerUser?.answeredQuiz;
-
-      document.getElementById('quiz-area').innerHTML = `
-        <div class="flash-card text-center fade-in py-4">
-          <div style="font-size:3.5rem;margin-bottom:1rem;">${alreadyDone ? '✅' : '🎉'}</div>
-          <h2 style="color:var(--sq-dark);font-size:1.7rem;">${alreadyDone ? 'Quiz Already Completed!' : 'You\'re Done! Amazing 💗'}</h2>
-          <p style="color:var(--sq-muted);max-width:420px;margin:0.8rem auto 2rem;line-height:1.7;">
-            ${alreadyDone
-              ? 'Your answers are saved. Invite your person or check your results below.'
-              : 'Your answers are saved. Now invite someone to take the quiz and compare answers with you!'}
-          </p>
-          <div class="d-flex gap-3 justify-content-center flex-wrap">
-            ${partnerDone
-              ? `<a href="results.html" class="btn btn-primary btn-lg"><i class="bi bi-fire me-2"></i>See Your Compatibility</a>`
-              : `<button class="btn btn-primary btn-lg" id="open-invite-btn"><i class="bi bi-send me-2"></i>Invite Your Person</button>`}
-            <a href="dashboard.html" class="btn btn-soft btn-lg">Go to Dashboard</a>
-          </div>
-          ${partnerUser && !partnerDone ? `
-            <div class="mt-4 p-3 rounded-3" style="background:var(--sq-baby);border:1.5px solid var(--sq-baby2);">
-              <i class="bi bi-hourglass-split text-warning me-2"></i>
-              Waiting for <strong>${partnerUser.displayName}</strong> to complete their quiz…
-            </div>` : ''}
-        </div>
-      `;
-
-      const openBtn = document.getElementById('open-invite-btn');
-      if (openBtn) {
-        openBtn.addEventListener('click', () => {
-          renderUserList('');
-          inviteModal.show();
-        });
-      }
-    }
-
-    // Initial render
-    renderQuestion(currentIdx);
-    updateProgress();
-    renderChips();
-
-    /* ── Invite Modal ── */
-    const inviteModal = new bootstrap.Modal(document.getElementById('inviteModal'));
-    let selectedUserKey = null;
-
-    function renderUserList(filter) {
-      const list = document.getElementById('user-list');
-      const allUsers = Users.getAll();
-      const keys = Object.keys(allUsers).filter(k => {
-        if (k === user.username) return false;
-        if (!filter) return true;
-        const f = filter.toLowerCase();
-        return k.includes(f) || allUsers[k].displayName.toLowerCase().includes(f);
-      });
-
-      if (!keys.length) {
-        list.innerHTML = `<div class="text-center py-4" style="color:var(--sq-muted);">
-          <i class="bi bi-people fs-2 d-block mb-2"></i>No other users found yet 🕊️<br>
-          <small>Share the app link so your person can create an account!</small>
-        </div>`;
-        return;
-      }
-
-      list.innerHTML = keys.map(k => {
-        const u = allUsers[k];
-        return `
-          <div class="user-item ${selectedUserKey === k ? 'selected' : ''}" data-key="${k}">
-            <div class="user-avatar-sm">${u.displayName.charAt(0).toUpperCase()}</div>
-            <div class="flex-grow-1">
-              <div style="font-weight:600;font-size:0.95rem;">${u.displayName}</div>
-              <div style="font-size:0.78rem;color:var(--sq-muted);">@${k}</div>
-            </div>
-            ${u.answeredQuiz
-              ? `<span class="badge" style="background:var(--sq-baby);color:var(--sq-dark);border:1px solid var(--sq-baby2);font-size:0.72rem;">✅ Quiz done</span>`
-              : `<span class="badge" style="background:#f5f5f5;color:#888;font-size:0.72rem;">Quiz pending</span>`}
-          </div>`;
-      }).join('');
-
-      list.querySelectorAll('.user-item').forEach(item => {
-        item.addEventListener('click', () => {
-          list.querySelectorAll('.user-item').forEach(i => i.classList.remove('selected'));
-          item.classList.add('selected');
-          selectedUserKey = item.dataset.key;
-          document.getElementById('send-invite-btn').disabled = false;
-        });
-      });
-    }
-
-    document.getElementById('user-search').addEventListener('input', e => renderUserList(e.target.value));
-
-    document.getElementById('send-invite-btn').addEventListener('click', () => {
-      if (!selectedUserKey) return;
-      const invitedUser = Users.getUser(selectedUserKey);
-      Pairs.add(user.username, selectedUserKey);
-      Users.update(user.username, { invitedTo: selectedUserKey });
-      Users.addNotification(selectedUserKey, {
-        type: 'invite',
-        from: user.username,
-        fromDisplay: user.displayName,
-        msg: `💌 ${user.displayName} has invited you to compare quiz answers!`,
-        link: 'quiz.html',
-      });
-      inviteModal.hide();
-      selectedUserKey = null;
-      showToast(`✅ Invite sent to ${invitedUser.displayName}! 💌`);
-      renderComplete(true);
-    });
-
-    document.getElementById('inviteModal').addEventListener('hidden.bs.modal', () => {
-      document.getElementById('user-search').value = '';
-      selectedUserKey = null;
-      document.getElementById('send-invite-btn').disabled = true;
-    });
+function renderChips() {
+  var topics = [];
+  QUESTIONS.forEach(function(q){ if(topics.indexOf(q.topic)<0) topics.push(q.topic); });
+  var html = '';
+  topics.forEach(function(t){
+    var qs = QUESTIONS.filter(function(q){return q.topic===t;});
+    var done = qs.every(function(q){return !!answers[q.id];});
+    var m = TOPIC_META[t];
+    html += '<span class="topic-chip'+(done?' done':'')+'">'+m.icon+' '+m.label+(done?' <i class="bi bi-check-circle-fill" style="font-size:0.7rem;"></i>':'')+'</span>';
   });
+  document.getElementById('topic-chips').innerHTML = html;
+}
+
+function updateProgress() {
+  var answered = Object.keys(answers).length;
+  var pct = Math.round((answered / TOTAL) * 100);
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = (idx + 1) + ' / ' + TOTAL;
+}
+
+function renderQ(i) {
+  var q = QUESTIONS[i];
+  var saved = answers[q.id] || null;
+  var LETTERS = ['A','B','C','D'];
+  var ansHTML = '';
+
+  if (q.type === 'options') {
+    q.options.forEach(function(opt, oi){
+      ansHTML +=
+        '<button type="button" class="option-btn'+(saved===opt?' selected':'')+'" data-opt="'+escHtml(opt)+'">'+
+          '<span class="option-letter">'+LETTERS[oi]+'</span>'+
+          '<span>'+escHtml(opt)+'</span>'+
+        '</button>';
+    });
+  } else {
+    ansHTML = '<textarea class="form-control" id="open-ans" rows="4" '+
+      'placeholder="Be honest — there are no wrong answers here &#128149;" '+
+      'style="min-height:120px;resize:vertical;border:2px solid var(--sq-baby2);border-radius:12px;font-size:0.95rem;">'+
+      escHtml(saved||'')+'</textarea>';
+  }
+
+  // Dot indicators
+  var dots = '';
+  QUESTIONS.forEach(function(_, di){
+    dots += '<span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 2px;background:'+(answers[QUESTIONS[di].id]?'var(--sq-dark)':'var(--sq-baby2)')+'"></span>';
+  });
+
+  document.getElementById('quiz-area').innerHTML =
+    '<div class="flash-card fade-in">'+
+      '<div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">'+
+        '<span class="topic-badge">'+q.icon+' '+TOPIC_META[q.topic].label+'</span>'+
+        '<span style="font-size:0.8rem;color:var(--sq-muted);font-weight:600;">Question '+(i+1)+' of '+TOTAL+'</span>'+
+      '</div>'+
+      '<p class="q-text">'+escHtml(q.text)+'</p>'+
+      '<div id="ans-area">'+ansHTML+'</div>'+
+      '<div class="d-flex align-items-center justify-content-center my-3" style="gap:3px;">'+dots+'</div>'+
+      '<div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">'+
+        '<button type="button" id="btn-prev" class="btn btn-soft"'+(i===0?' disabled':'')+'><i class="bi bi-arrow-left me-1"></i>Previous</button>'+
+        '<button type="button" id="btn-next" class="btn btn-primary">'+
+          (i===TOTAL-1?'<i class="bi bi-check-circle me-1"></i>Finish Quiz':'Next <i class="bi bi-arrow-right ms-1"></i>')+
+        '</button>'+
+      '</div>'+
+    '</div>';
+
+  // Option buttons
+  var area = document.getElementById('ans-area');
+  area.querySelectorAll('.option-btn').forEach(function(btn){
+    btn.onclick = function(){
+      area.querySelectorAll('.option-btn').forEach(function(b){ b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      answers[q.id] = btn.getAttribute('data-opt');
+      Answers.save(currentUser.username, answers);
+      renderChips(); updateProgress();
+    };
+  });
+
+  // Open textarea
+  var ta = document.getElementById('open-ans');
+  if (ta) {
+    ta.oninput = function(){
+      answers[q.id] = ta.value.trim();
+      Answers.save(currentUser.username, answers);
+      renderChips(); updateProgress();
+    };
+  }
+
+  // Prev / Next
+  document.getElementById('btn-prev').onclick = function(){
+    if (idx > 0) { idx--; renderQ(idx); updateProgress(); }
+  };
+  document.getElementById('btn-next').onclick = function(){
+    if (q.type === 'open' && ta) {
+      answers[q.id] = ta.value.trim();
+      Answers.save(currentUser.username, answers);
+    }
+    if (!answers[q.id]) {
+      showToast('&#9888; Please answer this question before moving on.');
+      return;
+    }
+    if (idx < TOTAL - 1) {
+      idx++; renderQ(idx); updateProgress();
+    } else {
+      finishQuiz();
+    }
+  };
+}
+
+function finishQuiz() {
+  Users.update(currentUser.username, { answeredQuiz: true });
+  currentUser = Users.get(currentUser.username);
+  renderComplete(false);
+}
+
+function renderComplete(alreadyDone) {
+  document.getElementById('topic-chips').innerHTML = '';
+  document.getElementById('prog-bar').style.width = '100%';
+  document.getElementById('prog-label').textContent = 'Done!';
+
+  var partner = Pairs.partner(currentUser.username);
+  var partnerUser = partner ? Users.get(partner) : null;
+  var partnerDone = partnerUser && partnerUser.answeredQuiz;
+
+  var waitMsg = '';
+  if (partnerUser && !partnerDone) {
+    waitMsg = '<div class="mt-3 p-3 rounded-3" style="background:var(--sq-baby);border:1.5px solid var(--sq-baby2);">'+
+      '&#9203; Waiting for <strong>'+escHtml(partnerUser.displayName)+'</strong> to complete their quiz…'+
+    '</div>';
+  }
+
+  document.getElementById('quiz-area').innerHTML =
+    '<div class="flash-card text-center py-4 fade-in">'+
+      '<div style="font-size:3.5rem;margin-bottom:1rem;">'+(alreadyDone?'✅':'🎉')+'</div>'+
+      '<h2 style="color:var(--sq-dark);font-size:1.7rem;">'+(alreadyDone?"Quiz Already Completed!":'You\'re done! Amazing &#128151;')+'</h2>'+
+      '<p style="color:var(--sq-muted);max-width:420px;margin:0.8rem auto 2rem;line-height:1.7;">'+
+        (alreadyDone?'Your answers are saved. Invite your person or check results below.':'Your answers are saved. Now invite someone to compare answers!')+
+      '</p>'+
+      '<div class="d-flex gap-3 justify-content-center flex-wrap">'+
+        (partnerDone
+          ? '<a href="./results.html" class="btn btn-primary btn-lg">&#128293; See Your Compatibility</a>'
+          : '<button type="button" class="btn btn-primary btn-lg" id="open-invite">&#128140; Invite Your Person</button>')+
+        '<a href="./dashboard.html" class="btn btn-soft btn-lg">Go to Dashboard</a>'+
+      '</div>'+
+      waitMsg+
+    '</div>';
+
+  var invBtn = document.getElementById('open-invite');
+  if (invBtn) {
+    invBtn.onclick = function(){
+      renderUserList('');
+      document.getElementById('user-search').value = '';
+      selectedInviteKey = null;
+      document.getElementById('send-invite-btn').disabled = true;
+      inviteModalObj.show();
+    };
+  }
+}
+
+// ── Invite modal ──
+var inviteModalObj = new bootstrap.Modal(document.getElementById('inviteModal'));
+var selectedInviteKey = null;
+
+function renderUserList(filter) {
+  var list = document.getElementById('user-list');
+  var all = Users.all();
+  var keys = Object.keys(all).filter(function(k){
+    if (k === currentUser.username) return false;
+    if (!filter) return true;
+    var f = filter.toLowerCase();
+    return k.indexOf(f) > -1 || all[k].displayName.toLowerCase().indexOf(f) > -1;
+  });
+  if (!keys.length) {
+    list.innerHTML = '<div class="text-center py-4" style="color:var(--sq-muted);"><i class="bi bi-people fs-2 d-block mb-2"></i>No other users found yet.<br><small>Share the link so your person can sign up!</small></div>';
+    return;
+  }
+  var html = '';
+  keys.forEach(function(k){
+    var u = all[k];
+    html += '<div class="user-item'+(selectedInviteKey===k?' selected':'')+'" data-key="'+k+'">'+
+      '<div class="user-avatar-sm">'+u.displayName.charAt(0).toUpperCase()+'</div>'+
+      '<div class="flex-grow-1">'+
+        '<div style="font-weight:600;font-size:0.95rem;">'+escHtml(u.displayName)+'</div>'+
+        '<div style="font-size:0.78rem;color:var(--sq-muted);">@'+k+'</div>'+
+      '</div>'+
+      (u.answeredQuiz
+        ? '<span style="font-size:0.72rem;background:var(--sq-baby);color:var(--sq-dark);border:1px solid var(--sq-baby2);border-radius:50px;padding:0.15rem 0.5rem;white-space:nowrap;">&#9989; Quiz done</span>'
+        : '<span style="font-size:0.72rem;background:#f5f5f5;color:#888;border-radius:50px;padding:0.15rem 0.5rem;white-space:nowrap;">Pending</span>')+
+    '</div>';
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.user-item').forEach(function(item){
+    item.onclick = function(){
+      list.querySelectorAll('.user-item').forEach(function(i){ i.classList.remove('selected'); });
+      item.classList.add('selected');
+      selectedInviteKey = item.getAttribute('data-key');
+      document.getElementById('send-invite-btn').disabled = false;
+    };
+  });
+}
+
+document.getElementById('user-search').oninput = function(){ renderUserList(this.value); };
+
+document.getElementById('send-invite-btn').onclick = function(){
+  if (!selectedInviteKey) return;
+  var invited = Users.get(selectedInviteKey);
+  Pairs.add(currentUser.username, selectedInviteKey);
+  Users.update(currentUser.username, { invitedTo: selectedInviteKey });
+  Users.notify(selectedInviteKey, {
+    type: 'invite',
+    from: currentUser.username,
+    msg: '&#128140; ' + escHtml(currentUser.displayName) + ' has invited you to compare quiz answers!',
+    link: './quiz.html'
+  });
+  inviteModalObj.hide();
+  selectedInviteKey = null;
+  document.getElementById('send-invite-btn').disabled = true;
+  showToast('&#9989; Invite sent to ' + escHtml(invited.displayName) + '! &#128140;');
+  renderComplete(true);
+};
+
+document.getElementById('inviteModal').addEventListener('hidden.bs.modal', function(){
+  document.getElementById('user-search').value = '';
+  selectedInviteKey = null;
+  document.getElementById('send-invite-btn').disabled = true;
+});
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 </body>
 </html>
