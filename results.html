@@ -6,13 +6,47 @@
   <title>Your Results — NewbiesQuiz</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="./style.css"/>
+  <script>
+var DB={get:function(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del:function(k){try{localStorage.removeItem(k);}catch(e){}}};
+var Users={all:function(){return DB.get('sq_users')||{};},get:function(u){if(!u)return null;return this.all()[String(u).toLowerCase()]||null;},current:function(){try{var k=DB.get('sq_session');return k?this.get(k):null;}catch(e){return null;}}};
+var Pairs={all:function(){return DB.get('sq_pairs')||[];},partner:function(u){try{var k=String(u).toLowerCase(),pair=this.all().find(function(p){return p.a===k||p.b===k;});return pair?(pair.a===k?pair.b:pair.a):null;}catch(e){return null;}}};
+var Answers={get:function(u){return DB.get('sq_ans_'+u)||{};}};
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+var QUESTIONS=[
+  {id:1,topic:'personality',icon:'✨',text:'Which vibe describes you best on a regular day?',type:'options',options:['Bubbly and talkative — I bring the energy','Chill and observant — quiet but full of opinions','Driven and focused — always got something on my mind','Spontaneous and unpredictable — I keep people guessing']},
+  {id:2,topic:'personality',icon:'✨',text:'What drains you the most after a long day?',type:'options',options:['Being around too many people','Having nothing to do — boredom is my enemy','Drama and conflict, even when it is not mine','Not being heard or understood']},
+  {id:3,topic:'personality',icon:'✨',text:'How would you describe your love language in one sentence?',type:'open'},
+  {id:4,topic:'personality',icon:'✨',text:'When things go wrong, you are more likely to…',type:'options',options:['Talk it out immediately with someone I trust','Go quiet and process alone first','Distract myself until I am ready to face it','Jump straight into fixing the problem']},
+  {id:5,topic:'personality',icon:'✨',text:'How would your closest friend describe you in three words?',type:'open'},
+  {id:6,topic:'interests',icon:'🎯',text:'Your perfect Saturday has zero obligations. What does it look like?',type:'options',options:['Outdoors — hiking, braai, beach or something active','Indoors — series, snacks and zero social interaction','Exploring — new restaurant, market, city or event','Creative — music, art, cooking or building something']},
+  {id:7,topic:'interests',icon:'🎯',text:'What kind of music do you actually listen to on repeat?',type:'options',options:['Amapiano and Afrobeats — it hits different','R&B and Soul — I am a whole vibe','Hip-hop and Rap — lyrics matter to me','Pop, Indie or Alternative — no judgment please']},
+  {id:8,topic:'interests',icon:'🎯',text:'What is one hobby or interest you wish more people knew about you?',type:'open'},
+  {id:9,topic:'interests',icon:'🎯',text:'Pick your ideal date from scratch:',type:'options',options:['Fancy dinner with great conversation','Chilling at home and cooking together','Adventure date — go-karting, escape room or hiking','Cultural or creative — gallery, live music or a market']},
+  {id:10,topic:'interests',icon:'🎯',text:'Which topic could you talk about for hours without getting bored?',type:'options',options:['Football, sport or fitness','Food, travel and new experiences','People, relationships and human behaviour','Tech, business, money or future ideas']},
+  {id:11,topic:'relationship',icon:'💞',text:'What does your ideal relationship dynamic look like? Be honest.',type:'open'},
+  {id:12,topic:'relationship',icon:'💞',text:'When you have a problem with someone you like, you tend to…',type:'options',options:['Address it straight away, even if uncomfortable','Wait until I have cooled down — I need time first','Drop hints and hope they pick up on it','Write it down or text rather than say it out loud']},
+  {id:13,topic:'relationship',icon:'💞',text:'What is one thing someone could do to make you feel truly seen and appreciated?',type:'open'},
+  {id:14,topic:'trust',icon:'🔒',text:'What does loyalty in a relationship mean to you?',type:'options',options:['Being completely open — no secrets, no hidden conversations','Showing up consistently, even when it is inconvenient','Choosing each other even when other options exist','All of the above — loyalty is the full package']},
+  {id:15,topic:'life',icon:'🌱',text:'What is one value or belief you will never compromise on, no matter who asks?',type:'open'}
+];
+var TOPIC_META={personality:{label:'Personality',icon:'✨'},interests:{label:'Interests',icon:'🎯'},relationship:{label:'Relationship',icon:'💞'},trust:{label:'Trust',icon:'🔒'},life:{label:'Life Values',icon:'🌱'}};
+
+var SYNONYMS=[['love','adore','cherish','care','affection','fond'],['trust','honest','honesty','truthful','reliable','dependable'],['family','parents','siblings','home','roots'],['loyalty','faithful','devoted','commitment'],['communication','talk','conversation','openness'],['respect','admire','value','appreciate'],['freedom','independence','space','autonomy'],['fun','joy','happy','happiness','laugh','enjoy','pleasure'],['growth','improve','learn','develop','evolve'],['music','songs','beats','tunes','rhythm'],['travel','explore','adventure','journey','trip'],['cooking','food','eating','recipe','meal'],['creative','art','paint','draw','write','craft'],['calm','peace','peaceful','relaxed','chill'],['ambitious','driven','motivated','goal','career'],['kind','compassionate','gentle','caring','warm'],['honest','truthful','sincere','genuine','authentic']];
+function norm(s){return String(s).toLowerCase().replace(/[^a-z0-9 ]/g,'').trim();}
+function synG(w){var wn=norm(w);for(var i=0;i<SYNONYMS.length;i++){if(SYNONYMS[i].some(function(s){return wn.indexOf(s)>-1||s.indexOf(wn)>-1;}))return i;}return -1;}
+function openSim(a,b){if(!a||!b)return 0;var wa=norm(a).split(/\s+/).filter(Boolean),wb=norm(b).split(/\s+/).filter(Boolean);if(!wa.length||!wb.length)return 0;var sc=0,used=[];wa.forEach(function(wA){for(var i=0;i<wb.length;i++){if(used[i])continue;if(wb[i]===wA){sc++;used[i]=true;return;}}var gA=synG(wA);if(gA<0)return;for(var j=0;j<wb.length;j++){if(used[j])continue;if(synG(wb[j])===gA){sc+=0.85;used[j]=true;return;}}});return Math.min(1,sc/Math.max(wa.length,wb.length));}
+function scorePair(q,a,b){if(!a||!b)return 0;return q.type==='options'?(norm(a)===norm(b)?1:0):openSim(a,b);}
+function computeCompat(uA,uB){var aA=Answers.get(uA),aB=Answers.get(uB),tS={},tC={},total=0,count=0;QUESTIONS.forEach(function(q){tC[q.topic]=(tC[q.topic]||0)+1;var s=scorePair(q,aA[q.id],aB[q.id]);tS[q.topic]=(tS[q.topic]||0)+s;total+=s;count++;});var overall=count?Math.round((total/count)*100):0,tPct={};Object.keys(TOPIC_META).forEach(function(t){tPct[t]=tC[t]?Math.round(((tS[t]||0)/tC[t])*100):0;});return{overall:overall,topicPct:tPct};}
+function resultMsg(score){if(score<=30)return{emoji:'🌧️',tier:'Not Compatible (For Now)',msg:"Hmm\u2026 the stars aren't quite aligning yet. We're giving 'not compatible (for now)' \u2014 but hey, even WiFi connects better with time \uD83D\uDE0C"};if(score<=60)return{emoji:'🌙',tier:'Mildly Flirting With Destiny',msg:"Okay, there's definitely some overlap here\u2026 like 'we could accidentally keep texting each other till 2am' kind of common ground. No need for a friendzone label \u2014 just two people mildly flirting with destiny \uD83D\uDE0F"};return{emoji:'🔥',tier:'Highly Compatible',msg:"Alright, this is looking serious\u2026 don't act surprised when you end up as each other's favourite notification. Go get your person \uD83D\uDE0C\uD83D\uDD25"};}
+  </script>
 </head>
 <body>
 
 <nav class="navbar navbar-sq navbar-expand-md sticky-top">
   <div class="container">
-    <a class="navbar-brand" href="index.html">💗 <span>Quiz</span></a>
+    <a class="navbar-brand" href="./index.html">&#128151; <span>Quiz</span></a>
     <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" style="color:#fff;">
       <i class="bi bi-list fs-4"></i>
     </button>
@@ -27,14 +61,11 @@
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-lg-9 col-xl-8">
-
         <div class="text-center mb-4 fade-in">
-          <h1 class="section-title">Compatibility Results 💞</h1>
-          <p class="section-sub">Here's how you two match up across every topic.</p>
+          <h1 class="section-title">Compatibility Results &#128158;</h1>
+          <p class="section-sub">Here's how you two match up.</p>
         </div>
-
         <div id="results-root" class="fade-in"></div>
-
       </div>
     </div>
   </div>
@@ -43,190 +74,172 @@
 <footer class="site-footer">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div class="footer-brand">💗 NewbiesQuiz</div>
-      <div class="d-flex gap-4">
-        <a href="index.html">Home</a>
-        <a href="quiz.html">Quiz</a>
-        <a href="dashboard.html">Dashboard</a>
-      </div>
-      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">© 2026 Quiz · Made with 💕</div>
+      <div class="footer-brand">&#128151; NewbiesQuiz</div>
+      <div class="d-flex gap-4"><a href="./index.html">Home</a><a href="./quiz.html">Quiz</a><a href="./dashboard.html">Dashboard</a></div>
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">&copy; 2026 NewbiesQuiz</div>
     </div>
   </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/data.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const session = Users.current();
-    if (!session) { window.location.href = 'login.html'; return; }
+  var session = Users.current();
+  if (!session) { window.location.href = './login.html'; }
 
-    const user = Users.getUser(session.username);
-    const partnerKey = Pairs.getPartner(user.username);
-    const partnerUser = partnerKey ? Users.getUser(partnerKey) : null;
-    const root = document.getElementById('results-root');
+  var user = Users.get(session.username);
+  var partnerKey = Pairs.partner(user.username);
+  var partnerUser = partnerKey ? Users.get(partnerKey) : null;
+  var root = document.getElementById('results-root');
 
-    /* ── Not-ready states ── */
-    function notReady(icon, title, body, btnHref, btnLabel) {
-      root.innerHTML = `
-        <div class="flash-card text-center py-5">
-          <div style="font-size:3rem;margin-bottom:1rem;">${icon}</div>
-          <h3 style="color:var(--sq-dark);font-family:'Playfair Display',serif;">${title}</h3>
-          <p style="color:var(--sq-muted);max-width:400px;margin:0.8rem auto 2rem;line-height:1.7;">${body}</p>
-          <a href="${btnHref}" class="btn btn-primary btn-lg">${btnLabel}</a>
-        </div>`;
-    }
+  // Render nav
+  (function(){
+    try {
+      var init = user.displayName.charAt(0).toUpperCase();
+      document.getElementById('main-nav').innerHTML =
+        '<li class="nav-item"><a class="nav-link" href="./quiz.html">Quiz</a></li>'+
+        '<li class="nav-item"><a class="nav-link" href="./results.html">Results</a></li>'+
+        '<li class="nav-item"><a class="nav-link" href="./dashboard.html">&#128276;</a></li>'+
+        '<li class="nav-item"><a class="btn-nav-cta btn ms-2" href="./dashboard.html"><span style="background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:0.75rem;margin-right:6px;">'+init+'</span>'+escHtml(user.displayName)+'</a></li>';
+    } catch(e) {}
+  })();
 
-    if (!user.answeredQuiz) return notReady('📝','Haven\'t taken the quiz yet','Answer all 15 questions first, then invite your person to compare answers.','quiz.html','Take the Quiz 💕');
-    if (!partnerUser) return notReady('💌','No partner linked yet','You\'ve completed the quiz — now invite someone to compare your answers with!','quiz.html','Invite Your Person');
-    if (!partnerUser.answeredQuiz) return notReady('⏳',`Waiting for ${partnerUser.displayName}…`,`<strong>${partnerUser.displayName}</strong> hasn't completed their quiz yet. Results appear once both of you are done.`,'dashboard.html','Back to Dashboard');
+  function notReady(icon, title, body, href, label) {
+    root.innerHTML = '<div class="flash-card text-center py-5"><div style="font-size:3rem;margin-bottom:1rem;">'+icon+'</div><h3 style="color:var(--sq-dark);">'+title+'</h3><p style="color:var(--sq-muted);max-width:400px;margin:0.8rem auto 2rem;line-height:1.7;">'+body+'</p><a href="'+href+'" class="btn btn-primary btn-lg">'+label+'</a></div>';
+  }
 
-    /* ── Compute ── */
-    const { overall, topicPct } = computeCompatibility(user.username, partnerKey);
-    const info = getResultMessage(overall);
-    const answersA = Answers.get(user.username);
-    const answersB = Answers.get(partnerKey);
-    const circumference = 2 * Math.PI * 80; // r=80
+  if (!user?.answeredQuiz) {
+  return notReady(
+    '&#128221;',
+    "Haven't taken the quiz yet",
+    "Answer all 15 questions first, then invite your person.",
+    './quiz.html',
+    'Take the Quiz &#128149;'
+  );
+}
 
-    /* ── Pair header ── */
-    const pairRow = `
-      <div class="d-flex align-items-center justify-content-center gap-4 mb-4 flex-wrap">
-        <div class="text-center">
-          <div class="big-avatar mx-auto mb-2">${user.displayName.charAt(0).toUpperCase()}</div>
-          <div style="font-family:'Playfair Display',serif;color:var(--sq-dark);font-size:1rem;">${user.displayName}</div>
-          <div style="font-size:0.78rem;color:var(--sq-muted);">@${user.username}</div>
-        </div>
-        <div class="heartbeat" style="font-size:2.8rem;">💗</div>
-        <div class="text-center">
-          <div class="big-avatar mx-auto mb-2" style="background:linear-gradient(135deg,#7a0050,var(--sq-mid));">${partnerUser.displayName.charAt(0).toUpperCase()}</div>
-          <div style="font-family:'Playfair Display',serif;color:var(--sq-dark);font-size:1rem;">${partnerUser.displayName}</div>
-          <div style="font-size:0.78rem;color:var(--sq-muted);">@${partnerKey}</div>
-        </div>
-      </div>`;
+if (!partnerUser) {
+  return notReady(
+    '&#128140;',
+    'No partner linked yet',
+    "You've done the quiz — now invite someone to compare answers with!",
+    './quiz.html',
+    'Invite Your Person'
+  );
+}
+  if (!partnerUser.answeredQuiz) return notReady('&#9203;','Waiting for '+escHtml(partnerUser.displayName)+'…','<strong>'+escHtml(partnerUser.displayName)+'</strong> hasn\'t finished their quiz yet. Come back once they\'re done.','./dashboard.html','Back to Dashboard');
 
-    /* ── Score ring ── */
-    const ringHTML = `
-      <div class="result-hero-card mb-4">
-        ${pairRow}
-        <div class="score-ring">
-          <svg viewBox="0 0 180 180">
-            <defs>
-              <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" style="stop-color:var(--sq-dark)"/>
-                <stop offset="100%" style="stop-color:var(--sq-accent)"/>
-              </linearGradient>
-            </defs>
-            <circle class="score-ring-bg" cx="90" cy="90" r="80"/>
-            <circle class="score-ring-fill" cx="90" cy="90" r="80" id="ring-fill"
-              style="stroke-dasharray:${circumference};stroke-dashoffset:${circumference}"/>
-          </svg>
-          <div class="score-center">
-            <div class="score-number" id="score-num">0</div>
-            <div style="font-size:0.9rem;color:var(--sq-muted);">%</div>
-          </div>
-        </div>
+  var compat = computeCompat(user.username, partnerKey);
+  var overall = compat.overall;
+  var topicPct = compat.topicPct;
+  var info = resultMsg(overall);
+  var aA = Answers.get(user.username);
+  var aB = Answers.get(partnerKey);
+  var C = 2 * Math.PI * 80; // circumference r=80
 
-        <div class="tier-badge">${info.emoji} ${info.tier}</div>
-        <div class="result-msg-box">${info.msg}</div>
+  // Pair header
+  var pairRow =
+    '<div class="d-flex align-items-center justify-content-center gap-4 mb-4 flex-wrap">'+
+      '<div class="text-center">'+
+        '<div class="big-avatar mx-auto mb-2">'+user.displayName.charAt(0).toUpperCase()+'</div>'+
+        '<div style="font-family:\'Playfair Display\',serif;color:var(--sq-dark);">'+escHtml(user.displayName)+'</div>'+
+        '<div style="font-size:0.78rem;color:var(--sq-muted);">@'+escHtml(user.username)+'</div>'+
+      '</div>'+
+      '<div class="heartbeat" style="font-size:2.8rem;">&#128151;</div>'+
+      '<div class="text-center">'+
+        '<div class="big-avatar mx-auto mb-2" style="background:linear-gradient(135deg,#7a0050,var(--sq-mid));">'+partnerUser.displayName.charAt(0).toUpperCase()+'</div>'+
+        '<div style="font-family:\'Playfair Display\',serif;color:var(--sq-dark);">'+escHtml(partnerUser.displayName)+'</div>'+
+        '<div style="font-size:0.78rem;color:var(--sq-muted);">@'+escHtml(partnerKey)+'</div>'+
+      '</div>'+
+    '</div>';
 
-        <div class="d-flex gap-3 justify-content-center flex-wrap mt-3">
-          <a href="dashboard.html" class="btn btn-soft"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
-          <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Save Results</button>
-        </div>
-      </div>`;
+  // Score ring
+  var ringHTML =
+    '<div class="result-hero-card mb-4">'+
+      pairRow+
+      '<div class="score-ring">'+
+        '<svg viewBox="0 0 180 180">'+
+          '<defs><linearGradient id="sG" x1="0%" y1="0%" x2="100%" y2="0%">'+
+            '<stop offset="0%" style="stop-color:var(--sq-dark)"/>'+
+            '<stop offset="100%" style="stop-color:var(--sq-accent)"/>'+
+          '</linearGradient></defs>'+
+          '<circle class="score-ring-bg" cx="90" cy="90" r="80"/>'+
+          '<circle class="score-ring-fill" cx="90" cy="90" r="80" id="ring-fill" style="stroke:url(#sG);stroke-dasharray:'+C+';stroke-dashoffset:'+C+'"/>'+
+        '</svg>'+
+        '<div class="score-center"><div class="score-number" id="score-num">0</div><div style="font-size:0.9rem;color:var(--sq-muted);">%</div></div>'+
+      '</div>'+
+      '<div class="tier-badge">'+info.emoji+' '+info.tier+'</div>'+
+      '<div class="result-msg-box">'+info.msg+'</div>'+
+      '<div class="d-flex gap-3 justify-content-center flex-wrap mt-3">'+
+        '<a href="./dashboard.html" class="btn btn-soft"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>'+
+        '<button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-2"></i>Save Results</button>'+
+      '</div>'+
+    '</div>';
 
-    /* ── Topic breakdown ── */
-    const breakdownHTML = `
-      <div class="card border-0 rounded-4 mb-4" style="border:1.5px solid var(--sq-baby2)!important;box-shadow:0 4px 20px var(--sq-shadow);">
-        <div class="card-header bg-white border-0 pt-3 pb-2 px-4 rounded-top-4">
-          <h5 style="font-family:'Playfair Display',serif;color:var(--sq-dark);margin:0;">
-            <i class="bi bi-bar-chart-fill me-2" style="color:var(--sq-mid);"></i>Topic Breakdown
-          </h5>
-        </div>
-        <div class="card-body px-4 pb-4">
-          ${Object.entries(topicPct).map(([topic, pct]) => `
-            <div class="topic-bar-row">
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="topic-bar-label">${TOPIC_META[topic]?.icon || ''} ${TOPIC_META[topic]?.label || topic}</div>
-                <div style="font-size:0.85rem;font-weight:700;color:var(--sq-dark);">${pct}%</div>
-              </div>
-              <div class="topic-bar-track">
-                <div class="topic-bar-fill" data-pct="${pct}" style="width:0%"></div>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-
-    /* ── Answer comparison ── */
-    const comparisonHTML = `
-      <div class="card border-0 rounded-4 mb-4" style="border:1.5px solid var(--sq-baby2)!important;box-shadow:0 4px 20px var(--sq-shadow);">
-        <div class="card-header bg-white border-0 pt-3 pb-2 px-4 rounded-top-4">
-          <h5 style="font-family:'Playfair Display',serif;color:var(--sq-dark);margin:0;">
-            <i class="bi bi-chat-heart-fill me-2" style="color:var(--sq-mid);"></i>How Your Answers Compare
-          </h5>
-          <p class="text-muted mb-0" style="font-size:0.82rem;">Scroll through each question to see where you align</p>
-        </div>
-        <div class="card-body px-4 pb-4">
-          ${QUESTIONS.map(q => {
-            const aAns = answersA[q.id] || '(no answer)';
-            const bAns = answersB[q.id] || '(no answer)';
-            const sim = scoreAnswerPair(q, aAns, bAns);
-            const matchLabel = sim >= 0.8 ? { icon:'bi-check-circle-fill', text:'Great match!', color:'#1a7a4a' }
-              : sim >= 0.4 ? { icon:'bi-arrow-repeat', text:'Some overlap', color:'var(--sq-mid)' }
-              : sim > 0  ? { icon:'bi-lightbulb', text:'Different views', color:'#c07020' }
-              : { icon:'bi-dash-circle', text:'No answer', color:'#999' };
-            return `
-              <div class="compare-card">
-                <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">
-                  <span class="topic-badge" style="font-size:0.7rem;">${q.icon} ${TOPIC_META[q.topic]?.label}</span>
-                  <span class="match-chip" style="color:${matchLabel.color};">
-                    <i class="bi ${matchLabel.icon} me-1"></i>${matchLabel.text}
-                  </span>
-                </div>
-                <p style="font-size:0.88rem;color:var(--sq-muted);font-style:italic;margin-bottom:0.8rem;">${q.text}</p>
-                <div class="row g-2">
-                  <div class="col-6">
-                    <div class="compare-ans">
-                      <div class="compare-who">${user.displayName}</div>
-                      ${aAns}
-                    </div>
-                  </div>
-                  <div class="col-6">
-                    <div class="compare-ans">
-                      <div class="compare-who">${partnerUser.displayName}</div>
-                      ${bAns}
-                    </div>
-                  </div>
-                </div>
-              </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-
-    root.innerHTML = ringHTML + breakdownHTML + comparisonHTML;
-
-    /* ── Animations ── */
-    // Ring fill
-    setTimeout(() => {
-      const fill = document.getElementById('ring-fill');
-      if (fill) fill.style.strokeDashoffset = circumference - (overall / 100) * circumference;
-      // Count-up
-      const numEl = document.getElementById('score-num');
-      let v = 0;
-      const iv = setInterval(() => {
-        v += 2;
-        if (v >= overall) { v = overall; clearInterval(iv); }
-        if (numEl) numEl.textContent = v;
-      }, 18);
-    }, 200);
-
-    // Topic bars
-    setTimeout(() => {
-      document.querySelectorAll('.topic-bar-fill').forEach(bar => {
-        bar.style.width = bar.dataset.pct + '%';
-      });
-    }, 400);
+  // Topic breakdown
+  var breakHTML = '<div class="card border-0 rounded-4 mb-4" style="border:1.5px solid var(--sq-baby2)!important;box-shadow:0 4px 20px var(--sq-shadow);">'+
+    '<div class="card-header bg-white border-0 pt-3 pb-2 px-4 rounded-top-4">'+
+      '<h5 style="font-family:\'Playfair Display\',serif;color:var(--sq-dark);margin:0;"><i class="bi bi-bar-chart-fill me-2" style="color:var(--sq-mid);"></i>Topic Breakdown</h5>'+
+    '</div>'+
+    '<div class="card-body px-4 pb-4">';
+  Object.keys(TOPIC_META).forEach(function(t){
+    var pct = topicPct[t] || 0;
+    var m = TOPIC_META[t];
+    breakHTML +=
+      '<div class="topic-bar-row">'+
+        '<div class="d-flex justify-content-between align-items-center">'+
+          '<div class="topic-bar-label">'+m.icon+' '+m.label+'</div>'+
+          '<div style="font-size:0.85rem;font-weight:700;color:var(--sq-dark);">'+pct+'%</div>'+
+        '</div>'+
+        '<div class="topic-bar-track"><div class="topic-bar-fill" data-pct="'+pct+'" style="width:0%"></div></div>'+
+      '</div>';
   });
+  breakHTML += '</div></div>';
+
+  // Answer comparison
+  var cmpHTML = '<div class="card border-0 rounded-4 mb-4" style="border:1.5px solid var(--sq-baby2)!important;box-shadow:0 4px 20px var(--sq-shadow);">'+
+    '<div class="card-header bg-white border-0 pt-3 pb-2 px-4 rounded-top-4">'+
+      '<h5 style="font-family:\'Playfair Display\',serif;color:var(--sq-dark);margin:0;"><i class="bi bi-chat-heart-fill me-2" style="color:var(--sq-mid);"></i>How Your Answers Compare</h5>'+
+    '</div>'+
+    '<div class="card-body px-4 pb-4">';
+  QUESTIONS.forEach(function(q){
+    var ansA = aA[q.id]||'(no answer)', ansB = aB[q.id]||'(no answer)';
+    var sim = scorePair(q, aA[q.id], aB[q.id]);
+    var ml = sim>=0.8?{ic:'bi-check-circle-fill',txt:'Great match!',col:'#1a7a4a'}
+            :sim>=0.4?{ic:'bi-arrow-repeat',txt:'Some overlap',col:'var(--sq-mid)'}
+            :sim>0  ?{ic:'bi-lightbulb',txt:'Different views',col:'#c07020'}
+                    :{ic:'bi-dash-circle',txt:'No answer',col:'#999'};
+    var m = TOPIC_META[q.topic];
+    cmpHTML +=
+      '<div class="compare-card">'+
+        '<div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">'+
+          '<span class="topic-badge" style="font-size:0.7rem;">'+q.icon+' '+m.label+'</span>'+
+          '<span style="font-size:0.75rem;font-weight:600;color:'+ml.col+'"><i class="bi '+ml.ic+' me-1"></i>'+ml.txt+'</span>'+
+        '</div>'+
+        '<p style="font-size:0.88rem;color:var(--sq-muted);font-style:italic;margin-bottom:0.8rem;">'+escHtml(q.text)+'</p>'+
+        '<div class="row g-2">'+
+          '<div class="col-6"><div class="compare-ans"><div class="compare-who">'+escHtml(user.displayName)+'</div>'+escHtml(ansA)+'</div></div>'+
+          '<div class="col-6"><div class="compare-ans"><div class="compare-who">'+escHtml(partnerUser.displayName)+'</div>'+escHtml(ansB)+'</div></div>'+
+        '</div>'+
+      '</div>';
+  });
+  cmpHTML += '</div></div>';
+
+  root.innerHTML = ringHTML + breakHTML + cmpHTML;
+
+  // Animate ring + counter
+  setTimeout(function(){
+    var fill = document.getElementById('ring-fill');
+    if (fill) fill.style.strokeDashoffset = C - (overall / 100) * C;
+    var numEl = document.getElementById('score-num'), v = 0;
+    var iv = setInterval(function(){ v+=2; if(v>=overall){v=overall;clearInterval(iv);} if(numEl) numEl.textContent=v; }, 18);
+  }, 200);
+
+  // Animate topic bars
+  setTimeout(function(){
+    document.querySelectorAll('.topic-bar-fill').forEach(function(bar){
+      bar.style.width = bar.getAttribute('data-pct') + '%';
+    });
+  }, 400);
 </script>
 </body>
 </html>
