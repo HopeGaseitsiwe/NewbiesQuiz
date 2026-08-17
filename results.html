@@ -83,8 +83,9 @@ function resultMsg(score){if(score<=30)return{emoji:'🌧️',tier:'Not Compatib
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+(function () {
   var session = Users.current();
-  if (!session) { window.location.href = './login.html'; }
+  if (!session) { window.location.href = './login.html'; return; }
 
   var user = Users.get(session.username);
   var partnerKey = Pairs.partner(user.username);
@@ -108,25 +109,28 @@ function resultMsg(score){if(score<=30)return{emoji:'🌧️',tier:'Not Compatib
   }
 
   if (!user?.answeredQuiz) {
-  return notReady(
-    '&#128221;',
-    "Haven't taken the quiz yet",
-    "Answer all 15 questions first, then invite your person.",
-    './quiz.html',
-    'Take the Quiz &#128149;'
-  );
-}
+    return notReady(
+      '&#128221;',
+      "Haven't taken the quiz yet",
+      "Answer all 15 questions first, then invite your person.",
+      './quiz.html',
+      'Take the Quiz &#128149;'
+    );
+  }
 
-if (!partnerUser) {
-  return notReady(
-    '&#128140;',
-    'No partner linked yet',
-    "You've done the quiz — now invite someone to compare answers with!",
-    './quiz.html',
-    'Invite Your Person'
-  );
-}
-  if (!partnerUser.answeredQuiz) return notReady('&#9203;','Waiting for '+escHtml(partnerUser.displayName)+'…','<strong>'+escHtml(partnerUser.displayName)+'</strong> hasn\'t finished their quiz yet. Come back once they\'re done.','./dashboard.html','Back to Dashboard');
+  if (!partnerUser) {
+    return notReady(
+      '&#128140;',
+      'No partner linked yet',
+      "You've done the quiz — now invite someone to compare answers with!",
+      './quiz.html',
+      'Invite Your Person'
+    );
+  }
+
+  if (!partnerUser.answeredQuiz) {
+    return notReady('&#9203;','Waiting for '+escHtml(partnerUser.displayName)+'…','<strong>'+escHtml(partnerUser.displayName)+'</strong> hasn\'t finished their quiz yet. Come back once they\'re done.','./dashboard.html','Back to Dashboard');
+  }
 
   var compat = computeCompat(user.username, partnerKey);
   var overall = compat.overall;
@@ -240,6 +244,8 @@ if (!partnerUser) {
       bar.style.width = bar.getAttribute('data-pct') + '%';
     });
   }, 400);
+
+})();
 </script>
 </body>
 </html>
